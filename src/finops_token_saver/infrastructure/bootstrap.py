@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol
 
 from fastapi import FastAPI
 
@@ -8,8 +9,11 @@ from finops_token_saver.api.app import create_app
 from finops_token_saver.application.cache import CacheStore
 from finops_token_saver.application.metrics import MetricsRepository
 from finops_token_saver.application.provider import ProviderClient
+from finops_token_saver.application.retrying_provider import RetryingProviderClient, Sleep
+from finops_token_saver.domain.retry_policy import RetryPolicy
 from finops_token_saver.infrastructure.postgres_metrics import PostgresMetricsRepository
 from finops_token_saver.infrastructure.provider import (
+    HttpClient,
     OpenAIProviderClient,
     UnconfiguredProviderClient,
 )
@@ -30,6 +34,17 @@ class BootstrappedDependencies:
     metrics_repository: MetricsRepository | None
 
 
+class OpenAIProviderFactory(Protocol):
+    def __call__(
+        self,
+        *,
+        api_key: str,
+        timeout_seconds: float,
+        http_client: HttpClient | None = None,
+    ) -> ProviderClient:
+        """Create the concrete OpenAI provider client."""
+
+
 def create_configured_app(settings: AppSettings | None = None) -> FastAPI:
     app_settings = settings or AppSettings.from_env()
     dependencies = build_dependencies(app_settings)
@@ -41,20 +56,41 @@ def create_configured_app(settings: AppSettings | None = None) -> FastAPI:
     )
 
 
-def build_dependencies(settings: AppSettings) -> BootstrappedDependencies:
+def build_dependencies(
+    settings: AppSettings,
+    openai_provider_factory: OpenAIProviderFactory = OpenAIProviderClient,
+    openai_http_client: HttpClient | None = None,
+    sleep: Sleep | None = None,
+) -> BootstrappedDependencies:
     return BootstrappedDependencies(
-        provider_client=_provider_client(settings),
+        provider_client=_provider_client(
+            settings,
+            openai_provider_factory=openai_provider_factory,
+            openai_http_client=openai_http_client,
+            sleep=sleep,
+        ),
         cache_store=_cache_store(settings),
         metrics_repository=_metrics_repository(settings),
     )
 
 
-def _provider_client(settings: AppSettings) -> ProviderClient:
+def _provider_client(
+    settings: AppSettings,
+    openai_provider_factory: OpenAIProviderFactory,
+    openai_http_client: HttpClient | None,
+    sleep: Sleep | None,
+) -> ProviderClient:
     if settings.openai_api_key is None:
         return UnconfiguredProviderClient()
-    return OpenAIProviderClient(
+    provider_client = openai_provider_factory(
         api_key=settings.openai_api_key,
         timeout_seconds=settings.provider_timeout_seconds,
+        http_client=openai_http_client,
+    )
+    return RetryingProviderClient(
+        provider_client=provider_client,
+        retry_policy=RetryPolicy(max_attempts=settings.max_retry_attempts),
+        **({"sleep": sleep} if sleep is not None else {}),
     )
 
 
