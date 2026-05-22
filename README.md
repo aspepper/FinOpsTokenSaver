@@ -47,6 +47,17 @@ Em outro terminal, execute os testes:
 make test
 ```
 
+Smoke test do fluxo principal:
+
+```bash
+make smoke
+```
+
+O smoke test sobe a aplicação localmente em loopback com provedor e cache em memória,
+executa `/health`, chamada não autenticada, cache miss autenticado e cache hit
+autenticado. A saída mostra status HTTP e headers principais, sem imprimir prompts
+ou credenciais.
+
 ### Configuração
 
 Em `development`, a aplicação usa defaults locais seguros para subir sem segredos reais.

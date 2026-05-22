@@ -1,10 +1,15 @@
-.PHONY: format lint test
+PYTHON ?= python
+
+.PHONY: format lint smoke test
 
 format:
-	python -m ruff format src tests
+	$(PYTHON) -m ruff format src tests scripts
 
 lint:
-	python -m ruff check src tests
+	$(PYTHON) -m ruff check src tests scripts
+
+smoke:
+	$(PYTHON) scripts/smoke_main_flow.py
 
 test:
-	python -m pytest
+	$(PYTHON) -m pytest
