@@ -1,6 +1,13 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+from finops_token_saver.api.observability import (
+    CACHE_STATUS_HEADER,
+    DEFAULT_PROVIDER_HEADER,
+    DEFAULT_RETRY_COUNT,
+    PROVIDER_HEADER,
+    RETRY_COUNT_HEADER,
+)
 from finops_token_saver.application.chat_completion import ForwardChatCompletion
 from finops_token_saver.domain.cache_status import CACHE_STATUS_BYPASS
 from finops_token_saver.domain.provider import ProviderError
@@ -14,10 +21,14 @@ def get_chat_completion_use_case(request: Request) -> ForwardChatCompletion:
     )
 
 
-def provider_error_response(error: ProviderError, request_id: str) -> JSONResponse:
+def provider_error_response(error: ProviderError) -> JSONResponse:
     return JSONResponse(
         status_code=error.status_code,
-        headers={"X-Cache-Status": CACHE_STATUS_BYPASS, "X-Request-Id": request_id},
+        headers={
+            CACHE_STATUS_HEADER: CACHE_STATUS_BYPASS,
+            PROVIDER_HEADER: DEFAULT_PROVIDER_HEADER,
+            RETRY_COUNT_HEADER: DEFAULT_RETRY_COUNT,
+        },
         content={
             "error": {
                 "message": error.safe_message,

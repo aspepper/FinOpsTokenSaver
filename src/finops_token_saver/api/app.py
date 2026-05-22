@@ -1,6 +1,5 @@
 import time
 from typing import Optional
-from uuid import uuid4
 
 from fastapi import BackgroundTasks, Body, Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -9,6 +8,13 @@ from finops_token_saver.api.auth import require_gateway_auth
 from finops_token_saver.api.chat_completions import (
     get_chat_completion_use_case,
     provider_error_response,
+)
+from finops_token_saver.api.observability import (
+    CACHE_STATUS_HEADER,
+    PROVIDER_HEADER,
+    RETRY_COUNT_HEADER,
+    add_observability_middleware,
+    get_request_id,
 )
 from finops_token_saver.application.cache import CacheStore
 from finops_token_saver.application.chat_completion import ForwardChatCompletion
@@ -42,6 +48,7 @@ def create_app(
     app.state.cache_store = cache_store
     app.state.metrics_repository = metrics_repository
     app.state.pricing_catalog = pricing_catalog or PricingCatalog()
+    add_observability_middleware(app)
 
     @app.get("/health")
     async def health() -> dict[str, str]:
@@ -54,12 +61,12 @@ def create_app(
         payload: dict = CHAT_COMPLETION_BODY,
         use_case: ForwardChatCompletion = CHAT_COMPLETION_USE_CASE,
     ) -> JSONResponse:
-        request_id = str(uuid4())
+        request_id = get_request_id(request)
         started_at = time.perf_counter()
         try:
             result = await use_case.execute(payload, headers=request.headers)
         except ProviderError as error:
-            return provider_error_response(error, request_id)
+            return provider_error_response(error)
 
         latency_ms = int((time.perf_counter() - started_at) * 1000)
         if app.state.metrics_repository is not None:
@@ -79,9 +86,9 @@ def create_app(
             status_code=result.provider_response.status_code,
             content=result.provider_response.body,
             headers={
-                "X-Cache-Status": result.cache_status,
-                "X-Request-Id": request_id,
-                "X-Gateway-Latency-Ms": str(latency_ms),
+                CACHE_STATUS_HEADER: result.cache_status,
+                PROVIDER_HEADER: result.provider_response.provider,
+                RETRY_COUNT_HEADER: "0",
             },
         )
 
