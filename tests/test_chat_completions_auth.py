@@ -4,12 +4,21 @@ import pytest
 from fastapi.testclient import TestClient
 
 from finops_token_saver.api.app import create_app
+from finops_token_saver.domain.provider import ProviderResponse
 from finops_token_saver.infrastructure.settings import AppSettings
+from tests.fakes import FakeProviderClient
 
 
 def create_test_client() -> TestClient:
     settings = AppSettings.from_env({"GATEWAY_API_KEYS": "valid-token"})
-    return TestClient(create_app(settings))
+    provider_client = FakeProviderClient(
+        response=ProviderResponse(
+            status_code=200,
+            body={"id": "completion-1", "choices": []},
+            provider="fake",
+        )
+    )
+    return TestClient(create_app(settings, provider_client=provider_client))
 
 
 @pytest.mark.parametrize(
@@ -47,11 +56,5 @@ def test_chat_completions_accepts_valid_api_key() -> None:
         json={"model": "test"},
     )
 
-    assert response.status_code == 501
-    assert response.json() == {
-        "error": {
-            "message": "Chat completions proxy is not implemented yet",
-            "type": "not_implemented",
-            "code": "not_implemented",
-        }
-    }
+    assert response.status_code == 200
+    assert response.json() == {"id": "completion-1", "choices": []}
