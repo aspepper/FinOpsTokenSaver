@@ -45,6 +45,7 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 * Geração de `X-Request-Id`, `X-Cache-Status`, `X-Provider`, `X-Retry-Count` e `X-Gateway-Latency-Ms`.
 * Cache exato baseado em payload canônico.
 * Adaptador Redis (`RedisCacheStore`).
+* Smoke test opcional com Redis real quando `REDIS_URL` está configurado.
 * Política de cacheabilidade para evitar cache de streaming, bypass e erros.
 * Política de retry com exponential backoff e jitter.
 * Entidade de métrica FinOps com custo estimado e economia estimada.
@@ -61,7 +62,6 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 * Instanciar `RedisCacheStore.from_url(settings.redis_url)` automaticamente fora de `development` ou quando `REDIS_URL` estiver configurado.
 * Instanciar `PostgresMetricsRepository.from_database_url(settings.database_url)` automaticamente fora de `development` ou quando `DATABASE_URL` estiver configurado.
 * Propagar o número real de retries para o header `X-Retry-Count`.
-* Criar smoke/integration test opcional com Redis real.
 * Criar smoke/integration test opcional com Postgres/Neon real.
 * Criar benchmark simples de cache hit com Redis real antes de afirmar latência abaixo de 50ms.
 * Documentar claramente que Anthropic, Gemini, cache semântico, dashboard e fallback entre provedores são itens pós-MVP.
@@ -95,6 +95,18 @@ O smoke test sobe a aplicação localmente em loopback com provedor e cache em m
 executa `/health`, chamada não autenticada, cache miss autenticado e cache hit
 autenticado. A saída mostra status HTTP e headers principais, sem imprimir prompts
 ou credenciais.
+
+Smoke test opcional com Redis real:
+
+```bash
+REDIS_URL=redis://localhost:6379/0 make smoke-redis
+```
+
+Esse comando usa provedor fake local, executa duas chamadas idênticas e valida
+`MISS` seguido de `HIT` usando a instância Redis configurada. Se `REDIS_URL` não
+estiver definido, o teste é pulado automaticamente. As chaves criadas usam um
+prefixo `finops-token-saver:integration:<uuid>:` e a limpeza remove somente
+chaves desse prefixo.
 
 ### Alternativa com container
 

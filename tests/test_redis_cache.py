@@ -102,3 +102,14 @@ async def test_redis_cache_uses_compact_json_serialization() -> None:
     await cache_store.set("cache-key", response_body, ttl_seconds=60)
 
     assert json.loads(redis_client.values["cache-key"].decode("utf-8")) == response_body
+
+
+@pytest.mark.anyio
+async def test_redis_cache_applies_optional_key_prefix() -> None:
+    redis_client = FakeRedisClient()
+    cache_store = RedisCacheStore(redis_client, key_prefix="test-prefix:")
+
+    await cache_store.set("cache-key", {"id": "completion-1"}, ttl_seconds=60)
+
+    assert "test-prefix:cache-key" in redis_client.values
+    assert await cache_store.get("cache-key") == {"id": "completion-1"}

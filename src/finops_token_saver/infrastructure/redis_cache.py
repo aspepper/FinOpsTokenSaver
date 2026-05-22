@@ -23,6 +23,7 @@ class RedisCacheStore(CacheStore):
         self,
         redis_client: RedisClient,
         max_item_bytes: int = DEFAULT_MAX_CACHE_ITEM_BYTES,
+        key_prefix: str = "",
         logger: Optional[logging.Logger] = None,
     ) -> None:
         if max_item_bytes <= 0:
@@ -30,6 +31,7 @@ class RedisCacheStore(CacheStore):
 
         self._redis_client = redis_client
         self._max_item_bytes = max_item_bytes
+        self._key_prefix = key_prefix
         self._logger = logger or logging.getLogger(__name__)
 
     @classmethod
@@ -37,15 +39,17 @@ class RedisCacheStore(CacheStore):
         cls,
         redis_url: str,
         max_item_bytes: int = DEFAULT_MAX_CACHE_ITEM_BYTES,
+        key_prefix: str = "",
     ) -> "RedisCacheStore":
         return cls(
             redis_client=Redis.from_url(redis_url, encoding="utf-8", decode_responses=False),
             max_item_bytes=max_item_bytes,
+            key_prefix=key_prefix,
         )
 
     async def get(self, key: str) -> Optional[dict]:
         try:
-            raw_value = await self._redis_client.get(key)
+            raw_value = await self._redis_client.get(self._key(key))
         except RedisError:
             self._log_cache_event("MISS")
             return None
@@ -69,9 +73,12 @@ class RedisCacheStore(CacheStore):
             return
 
         try:
-            await self._redis_client.setex(key, ttl_seconds, serialized_value)
+            await self._redis_client.setex(self._key(key), ttl_seconds, serialized_value)
         except RedisError:
             self._log_cache_event("SKIP")
+
+    def _key(self, key: str) -> str:
+        return f"{self._key_prefix}{key}"
 
     def _log_cache_event(self, status: str) -> None:
         self._logger.info(
