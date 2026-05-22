@@ -58,6 +58,54 @@ executa `/health`, chamada não autenticada, cache miss autenticado e cache hit
 autenticado. A saída mostra status HTTP e headers principais, sem imprimir prompts
 ou credenciais.
 
+### Alternativa com container
+
+Se o deploy alvo for Azure Container Apps, a aplicação também pode ser empacotada
+como imagem OCI usando o `Dockerfile` do projeto.
+
+Build local:
+
+```bash
+docker build -t finops-token-saver:local .
+```
+
+Execução local do container:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e APP_ENV=development \
+  -e GATEWAY_API_KEYS=local-dev-key \
+  finops-token-saver:local
+```
+
+Health check:
+
+```bash
+curl -i http://127.0.0.1:8000/health
+```
+
+Para publicar no Azure Container Apps, envie a imagem para um registry, como Azure
+Container Registry, e crie ou atualize o container app apontando para essa imagem.
+O container escuta a porta `8000` por default e respeita a variável `PORT` quando
+ela for definida pela plataforma.
+
+Exemplo usando uma imagem já publicada:
+
+```bash
+az containerapp up \
+  --name finops-token-saver \
+  --resource-group <RESOURCE_GROUP> \
+  --location <AZURE_REGION> \
+  --image <REGISTRY>/finops-token-saver:<TAG> \
+  --ingress external \
+  --target-port 8000
+```
+
+Configure segredos e variáveis obrigatórias pelo recurso do Container App, pelo
+Azure CLI ou por Key Vault. Não inclua valores reais de `GATEWAY_API_KEYS`,
+`OPENAI_API_KEY`, `REDIS_URL` ou `DATABASE_URL` no Dockerfile, na imagem ou no
+histórico do shell.
+
 ### Configuração
 
 Em `development`, a aplicação usa defaults locais seguros para subir sem segredos reais.
