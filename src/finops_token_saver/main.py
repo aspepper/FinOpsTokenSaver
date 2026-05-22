@@ -1,8 +1,8 @@
 import uvicorn
 
-from finops_token_saver.api.app import create_app
+from finops_token_saver.infrastructure.bootstrap import create_configured_app
 
-app = create_app()
+app = create_configured_app()
 
 
 def run() -> None:

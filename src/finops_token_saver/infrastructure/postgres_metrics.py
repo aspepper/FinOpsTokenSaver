@@ -29,13 +29,24 @@ class AsyncPostgresPool(Protocol):
         """Execute a SQL statement."""
 
 
+class LazyAsyncPostgresPool:
+    def __init__(self, database_url: str) -> None:
+        self._database_url = database_url
+        self._pool: AsyncPostgresPool | None = None
+
+    async def execute(self, query: str, *args: object) -> object:
+        if self._pool is None:
+            self._pool = await asyncpg.create_pool(self._database_url)
+        return await self._pool.execute(query, *args)
+
+
 class PostgresMetricsRepository(MetricsRepository):
     def __init__(self, pool: AsyncPostgresPool) -> None:
         self._pool = pool
 
     @classmethod
-    async def from_database_url(cls, database_url: str) -> "PostgresMetricsRepository":
-        return cls(await asyncpg.create_pool(database_url))
+    def from_database_url(cls, database_url: str) -> "PostgresMetricsRepository":
+        return cls(LazyAsyncPostgresPool(database_url))
 
     async def save(self, metric: FinOpsMetric) -> None:
         await self._pool.execute(

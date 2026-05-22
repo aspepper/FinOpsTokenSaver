@@ -14,10 +14,7 @@ from finops_token_saver.infrastructure.provider import (
     OPENAI_CHAT_COMPLETIONS_URL,
     OPENAI_PROVIDER_NAME,
     OpenAIProviderClient,
-    UnconfiguredProviderClient,
-    provider_client_from_settings,
 )
-from finops_token_saver.infrastructure.settings import AppSettings
 
 
 class FakeHttpResponse:
@@ -178,25 +175,3 @@ async def test_openai_provider_maps_client_error_to_generic_provider_error() -> 
 
     assert error.value.status_code == 400
     assert error.value.safe_message == "OpenAI request failed"
-
-
-def test_provider_factory_uses_openai_when_key_is_configured() -> None:
-    settings = AppSettings.from_env(
-        {
-            "GATEWAY_API_KEYS": "gateway-secret",
-            "OPENAI_API_KEY": "provider-secret",
-            "PROVIDER_TIMEOUT_SECONDS": "7",
-        }
-    )
-
-    provider = provider_client_from_settings(settings)
-
-    assert isinstance(provider, OpenAIProviderClient)
-
-
-def test_provider_factory_uses_unconfigured_provider_without_key() -> None:
-    settings = AppSettings.from_env({"GATEWAY_API_KEYS": "gateway-secret"})
-
-    provider = provider_client_from_settings(settings)
-
-    assert isinstance(provider, UnconfiguredProviderClient)

@@ -26,7 +26,7 @@ from finops_token_saver.application.metrics import (
 from finops_token_saver.application.provider import ProviderClient
 from finops_token_saver.domain.pricing import PricingCatalog
 from finops_token_saver.domain.provider import ProviderError
-from finops_token_saver.infrastructure.provider import provider_client_from_settings
+from finops_token_saver.infrastructure.provider import UnconfiguredProviderClient
 from finops_token_saver.infrastructure.settings import AppSettings
 
 SERVICE_NAME = "finops-token-saver"
@@ -44,7 +44,7 @@ def create_app(
     app_settings = settings or AppSettings.from_env()
     app = FastAPI(title="FinOpsTokenSaver", version="0.1.0")
     app.state.settings = app_settings
-    app.state.provider_client = provider_client or provider_client_from_settings(app_settings)
+    app.state.provider_client = provider_client or UnconfiguredProviderClient()
     app.state.cache_store = cache_store
     app.state.metrics_repository = metrics_repository
     app.state.pricing_catalog = pricing_catalog or PricingCatalog()

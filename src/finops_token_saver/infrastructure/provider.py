@@ -14,7 +14,6 @@ from finops_token_saver.domain.provider import (
     ProviderTimeoutError,
     ProviderUnavailableError,
 )
-from finops_token_saver.infrastructure.settings import AppSettings
 
 OPENAI_CHAT_COMPLETIONS_URL = "https://api.openai.com/v1/chat/completions"
 OPENAI_PROVIDER_NAME = "openai"
@@ -106,15 +105,6 @@ class OpenAIProviderClient(ProviderClient):
                 json=payload,
                 headers=headers,
             )
-
-
-def provider_client_from_settings(settings: AppSettings) -> ProviderClient:
-    if settings.openai_api_key is None:
-        return UnconfiguredProviderClient()
-    return OpenAIProviderClient(
-        api_key=settings.openai_api_key,
-        timeout_seconds=settings.provider_timeout_seconds,
-    )
 
 
 def _response_body(response: HttpResponse) -> dict:
