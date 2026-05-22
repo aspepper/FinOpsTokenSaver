@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from finops_token_saver.api.app import create_app
 from finops_token_saver.domain.provider import ProviderRateLimitError, ProviderResponse
 from finops_token_saver.infrastructure.settings import AppSettings
-from tests.fakes import FakeProviderClient
+from tests.fakes import FakeProviderClient, InMemoryCacheStore
 
 
 def test_chat_completions_forwards_payload_and_preserves_provider_response() -> None:
@@ -24,6 +24,7 @@ def test_chat_completions_forwards_payload_and_preserves_provider_response() -> 
 
     assert response.status_code == 200
     assert response.json() == provider_response.body
+    assert response.headers["x-cache-status"] == "BYPASS"
     assert provider_client.requests == [payload]
 
 
@@ -44,6 +45,7 @@ def test_chat_completions_maps_provider_error_to_openai_like_error_contract() ->
     )
 
     assert response.status_code == 429
+    assert response.headers["x-cache-status"] == "BYPASS"
     assert response.json() == {
         "error": {
             "message": "Provider rate limit exceeded",
@@ -51,6 +53,43 @@ def test_chat_completions_maps_provider_error_to_openai_like_error_contract() ->
             "code": "provider_rate_limit",
         }
     }
+
+
+def test_chat_completions_cache_miss_followed_by_cache_hit() -> None:
+    provider_response = ProviderResponse(
+        status_code=200,
+        body={"id": "completion-1", "choices": [{"message": {"content": "pong"}}]},
+        provider="fake",
+    )
+    provider_client = FakeProviderClient(response=provider_response)
+    cache_store = InMemoryCacheStore()
+    client = TestClient(
+        create_app(
+            _settings(),
+            provider_client=provider_client,
+            cache_store=cache_store,
+        )
+    )
+    payload = {"model": "test-model", "messages": [{"role": "user", "content": "ping"}]}
+
+    first_response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": "Bearer valid-token"},
+        json=payload,
+    )
+    second_response = client.post(
+        "/v1/chat/completions",
+        headers={"Authorization": "Bearer valid-token"},
+        json=payload,
+    )
+
+    assert first_response.status_code == 200
+    assert first_response.headers["x-cache-status"] == "MISS"
+    assert second_response.status_code == 200
+    assert second_response.headers["x-cache-status"] == "HIT"
+    assert second_response.json() == provider_response.body
+    assert provider_client.requests == [payload]
+    assert list(cache_store.ttl_seconds_by_key.values()) == [43_200]
 
 
 def _settings() -> AppSettings:

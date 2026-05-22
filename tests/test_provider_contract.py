@@ -18,7 +18,8 @@ async def test_forward_chat_completion_uses_provider_client_contract() -> None:
 
     response = await use_case.execute(payload)
 
-    assert response == provider_response
+    assert response.provider_response == provider_response
+    assert response.cache_status == "BYPASS"
     assert provider_client.requests == [payload]
 
 
