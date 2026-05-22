@@ -126,6 +126,14 @@ Variáveis opcionais com default:
 
 ---
 
+## ☕ Apoie o Projeto
+
+O **FinOpsTokenSaver** é um projeto open-source mantido com dedicação para ajudar a comunidade a otimizar recursos e construir arquiteturas mais resilientes. Se este software ajudou sua empresa a economizar custos em produção ou facilitou seus estudos, considere apoiar o desenvolvimento contínuo!
+
+* **PIX (Brasil):** `d3ad72f7-17c0-4a3d-b286-63ceaedc7dc9`
+
+---
+
 ## 📝 Licença
 
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
