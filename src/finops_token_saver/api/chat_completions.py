@@ -1,10 +1,8 @@
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
-from finops_token_saver.application.chat_completion import (
-    CACHE_STATUS_BYPASS,
-    ForwardChatCompletion,
-)
+from finops_token_saver.application.chat_completion import ForwardChatCompletion
+from finops_token_saver.domain.cache_status import CACHE_STATUS_BYPASS
 from finops_token_saver.domain.provider import ProviderError
 
 

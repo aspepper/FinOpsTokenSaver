@@ -5,12 +5,14 @@ from typing import Optional
 from finops_token_saver.application.cache import CacheStore
 from finops_token_saver.application.provider import ProviderClient
 from finops_token_saver.domain.cache_policy import CachePolicy
+from finops_token_saver.domain.cache_status import (
+    CACHE_STATUS_BYPASS,
+    CACHE_STATUS_HIT,
+    CACHE_STATUS_MISS,
+)
 from finops_token_saver.domain.canonical_payload import CanonicalPayload
 from finops_token_saver.domain.provider import ProviderResponse
 
-CACHE_STATUS_BYPASS = "BYPASS"
-CACHE_STATUS_HIT = "HIT"
-CACHE_STATUS_MISS = "MISS"
 DEFAULT_PROVIDER_NAME = "openai"
 
 
