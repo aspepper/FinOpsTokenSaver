@@ -72,4 +72,4 @@ Variáveis opcionais com default:
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
-Desenvolvido por <a href="https://www.linkedin.com/in/alexpimentadev/?locale=pt" target="_blank" rel="noopener noreferrer">Alex Pimenta</a> - Vamos nos conectar no LinkedIn!
+Desenvolvido por [Alex Pimenta ↗](https://www.linkedin.com/in/alexpimentadev/?locale=pt)
