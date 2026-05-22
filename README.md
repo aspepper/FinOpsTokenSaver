@@ -72,4 +72,4 @@ Variáveis opcionais com default:
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
-Desenvolvido por [Seu Nome](https://www.linkedin.com/in/seu-perfil/) - Vamos nos conectar no LinkedIn!
+Desenvolvido por [Alex Pimenta](https://www.linkedin.com/in/alexpimentadev/?locale=pt) - Vamos nos conectar no LinkedIn!
