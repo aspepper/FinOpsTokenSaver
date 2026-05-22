@@ -26,6 +26,7 @@ Este documento transforma o roadmap em tarefas pequenas e verificaveis. Cada tar
 3. Criar ponto de entrada da aplicacao.
 4. Criar comando de teste.
 5. Criar primeiro teste de sanidade.
+6. Crie o .gitignore para o projeto criado.
 
 ### Qualidade Esperada
 * Estrutura simples e sem abstracoes prematuras.

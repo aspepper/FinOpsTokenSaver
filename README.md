@@ -34,7 +34,36 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 
 ## 🚀 Como Executar Localmente
 
-*(Adicione aqui os passos simples para rodar o projeto assim que definir a stack de linguagem, ex: npm install ou pip install)*
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -e ".[dev]"
+python -m uvicorn finops_token_saver.main:app --reload
+```
+
+Em outro terminal, execute os testes:
+
+```bash
+make test
+```
+
+### Configuração
+
+Em `development`, a aplicação usa defaults locais seguros para subir sem segredos reais.
+Para `staging` ou `production`, configure obrigatoriamente:
+
+* `GATEWAY_API_KEYS`
+* `OPENAI_API_KEY`
+* `REDIS_URL`
+* `DATABASE_URL`
+
+Variáveis opcionais com default:
+
+* `APP_ENV=development`
+* `CACHE_TTL_SECONDS=43200`
+* `PROVIDER_TIMEOUT_SECONDS=30`
+* `MAX_RETRY_ATTEMPTS=3`
+* `LOG_LEVEL=INFO`
 
 ---
 
