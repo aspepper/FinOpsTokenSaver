@@ -33,6 +33,7 @@ class FakeProviderClient(ProviderClient):
         self,
         response: Optional[ProviderResponse] = None,
         error: Optional[ProviderError] = None,
+        error_then_response: Optional[ProviderError] = None,
     ) -> None:
         self.requests: list[dict] = []
         self._response = response or ProviderResponse(
@@ -41,9 +42,14 @@ class FakeProviderClient(ProviderClient):
             provider="fake",
         )
         self._error = error
+        self._error_then_response = error_then_response
 
     async def create_chat_completion(self, payload: dict) -> ProviderResponse:
         self.requests.append(payload)
+        if self._error_then_response is not None:
+            error = self._error_then_response
+            self._error_then_response = None
+            raise error
         if self._error is not None:
             raise self._error
         return self._response

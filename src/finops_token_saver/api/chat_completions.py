@@ -4,7 +4,6 @@ from fastapi.responses import JSONResponse
 from finops_token_saver.api.observability import (
     CACHE_STATUS_HEADER,
     DEFAULT_PROVIDER_HEADER,
-    DEFAULT_RETRY_COUNT,
     PROVIDER_HEADER,
     RETRY_COUNT_HEADER,
 )
@@ -27,7 +26,7 @@ def provider_error_response(error: ProviderError) -> JSONResponse:
         headers={
             CACHE_STATUS_HEADER: CACHE_STATUS_BYPASS,
             PROVIDER_HEADER: DEFAULT_PROVIDER_HEADER,
-            RETRY_COUNT_HEADER: DEFAULT_RETRY_COUNT,
+            RETRY_COUNT_HEADER: str(error.retry_count),
         },
         content={
             "error": {

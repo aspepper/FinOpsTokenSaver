@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 from typing import Optional
 
 from finops_token_saver.application.provider import ProviderClient
@@ -24,9 +25,11 @@ class RetryingProviderClient(ProviderClient):
         attempt_number = 1
         while True:
             try:
-                return await self._provider_client.create_chat_completion(payload)
+                response = await self._provider_client.create_chat_completion(payload)
+                return replace(response, retry_count=attempt_number - 1)
             except ProviderError as error:
                 if not self._retry_policy.should_retry(error, attempt_number):
+                    error.retry_count = attempt_number - 1
                     raise
 
                 await self._sleep(self._retry_policy.delay_for_attempt(attempt_number))

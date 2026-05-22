@@ -43,7 +43,12 @@ async def test_retrying_provider_succeeds_after_retry_without_real_sleep() -> No
 
     result = await retrying_provider.create_chat_completion(payload)
 
-    assert result == response
+    assert result == ProviderResponse(
+        status_code=200,
+        body={"id": "ok"},
+        provider="fake",
+        retry_count=1,
+    )
     assert provider_client.requests == [payload, payload]
     assert sleeper.delays == [2.0]
 
@@ -65,6 +70,7 @@ async def test_retrying_provider_raises_final_error_after_max_attempts() -> None
         await retrying_provider.create_chat_completion({"model": "test-model"})
 
     assert error.value is final_error
+    assert error.value.retry_count == 2
     assert len(provider_client.requests) == 3
     assert sleeper.delays == [2.0, 4.0]
 

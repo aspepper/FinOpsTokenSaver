@@ -88,7 +88,7 @@ def create_app(
             headers={
                 CACHE_STATUS_HEADER: result.cache_status,
                 PROVIDER_HEADER: result.provider_response.provider,
-                RETRY_COUNT_HEADER: "0",
+                RETRY_COUNT_HEADER: str(result.provider_response.retry_count),
             },
         )
 

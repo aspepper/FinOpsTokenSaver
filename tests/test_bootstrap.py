@@ -163,7 +163,8 @@ async def test_bootstrapped_openai_provider_succeeds_after_retry_without_real_sl
     )
     result = await dependencies.provider_client.create_chat_completion({"model": "test-model"})
 
-    assert result == response
+    assert result.body == response.body
+    assert result.retry_count == 1
     assert len(provider_client.requests) == 2
     assert sleeper.delays
     assert factory.calls == [
@@ -198,6 +199,7 @@ async def test_bootstrapped_openai_provider_raises_final_error_after_configured_
         await dependencies.provider_client.create_chat_completion({"model": "test-model"})
 
     assert error.value is final_error
+    assert error.value.retry_count == 1
     assert len(provider_client.requests) == 2
     assert len(sleeper.delays) == 1
 
