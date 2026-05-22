@@ -9,6 +9,7 @@ description = "Lightweight AI gateway focused on token cost savings and resilien
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
+    "asyncpg>=0.29,<1.0",
     "fastapi>=0.111,<1.0",
     "redis>=5.0,<6.0",
     "uvicorn[standard]>=0.29,<1.0",

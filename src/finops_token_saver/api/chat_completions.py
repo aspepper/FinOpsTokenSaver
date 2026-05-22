@@ -14,10 +14,10 @@ def get_chat_completion_use_case(request: Request) -> ForwardChatCompletion:
     )
 
 
-def provider_error_response(error: ProviderError) -> JSONResponse:
+def provider_error_response(error: ProviderError, request_id: str) -> JSONResponse:
     return JSONResponse(
         status_code=error.status_code,
-        headers={"X-Cache-Status": CACHE_STATUS_BYPASS},
+        headers={"X-Cache-Status": CACHE_STATUS_BYPASS, "X-Request-Id": request_id},
         content={
             "error": {
                 "message": error.safe_message,
