@@ -345,4 +345,4 @@ O **FinOpsTokenSaver** é um projeto open-source mantido com dedicação para aj
 Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ---
-Desenvolvido por [Alex Pimenta ↗](https://www.linkedin.com/in/alexpimentadev/?locale=pt) - Vamos nos conectar no LinkedIn.
+Desenvolvido por [Alex Pimenta ↗](https://www.linkedin.com/in/alexpimentadev/?locale=pt) utilizando a ferramenta Open IA Codex em menos de 3 horas - Vamos nos conectar no LinkedIn.
