@@ -50,6 +50,7 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 * Política de retry com exponential backoff e jitter.
 * Entidade de métrica FinOps com custo estimado e economia estimada.
 * Repositório Postgres assíncrono para métricas.
+* Smoke test opcional com Postgres/Neon real quando `DATABASE_URL` está configurado.
 * Migração inicial da tabela `tb_finops_metrics`.
 * Smoke test local com provedor fake e cache em memória.
 * Dockerfile e documentação para execução em container.
@@ -62,7 +63,6 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 * Instanciar `RedisCacheStore.from_url(settings.redis_url)` automaticamente fora de `development` ou quando `REDIS_URL` estiver configurado.
 * Instanciar `PostgresMetricsRepository.from_database_url(settings.database_url)` automaticamente fora de `development` ou quando `DATABASE_URL` estiver configurado.
 * Propagar o número real de retries para o header `X-Retry-Count`.
-* Criar smoke/integration test opcional com Postgres/Neon real.
 * Criar benchmark simples de cache hit com Redis real antes de afirmar latência abaixo de 50ms.
 * Documentar claramente que Anthropic, Gemini, cache semântico, dashboard e fallback entre provedores são itens pós-MVP.
 
@@ -107,6 +107,18 @@ Esse comando usa provedor fake local, executa duas chamadas idênticas e valida
 estiver definido, o teste é pulado automaticamente. As chaves criadas usam um
 prefixo `finops-token-saver:integration:<uuid>:` e a limpeza remove somente
 chaves desse prefixo.
+
+Smoke test opcional com Postgres ou Neon real:
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/finops_token_saver make smoke-postgres
+```
+
+Esse comando aplica a migração `migrations/001_create_finops_metrics.sql` se
+necessário, executa uma chamada com provedor fake local e consulta
+`tb_finops_metrics` pelo `request_id` de teste. Se `DATABASE_URL` não estiver
+definido, o teste é pulado automaticamente. A limpeza remove somente a linha com
+o `request_id` usado pelo smoke test.
 
 ### Alternativa com container
 
