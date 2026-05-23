@@ -7,7 +7,7 @@
 
 O **FinOpsTokenSaver** é um gateway de IA e proxy reverso inteligente, projetado para reduzir custos de tokens e aumentar a resiliência de aplicações que utilizam LLMs.
 
-O projeto está em fase de MVP. A base arquitetural já cobre autenticação, cache exato, retry, métricas FinOps, persistência assíncrona e empacotamento em container, mas ainda faltam integrações de produção para conectar automaticamente OpenAI, Redis e Postgres no bootstrap padrão da aplicação.
+O projeto está em fase de MVP funcional. A base arquitetural cobre autenticação, proxy para OpenAI, cache exato com Redis, retry com backoff e jitter, métricas FinOps, persistência assíncrona em Postgres/Neon, smoke tests opcionais com infraestrutura real e empacotamento em container.
 
 Toda a arquitetura foi desenhada de forma leve para rodar em cenários de estudo, demo, protótipo e cargas pequenas dentro dos limites de **infraestrutura 100% gratuita** (Azure Free F1, Neon Serverless e Redis Free Tier).
 
@@ -19,7 +19,7 @@ Integrar inteligência artificial em sistemas corporativos traz dois grandes pro
 
 *   **Cache Exato (FinOps):** Reaproveita respostas de requisições idênticas, usando uma chave determinística baseada no payload canônico.
 *   **Resiliência:** Implementa uma política de *Exponential Backoff com Jitter* para falhas transitórias, como HTTP 408, 429 e 5xx.
-*   **Auditoria Assíncrona de Custos:** Calcula custo estimado, economia estimada, tokens e latência, com persistência assíncrona em Postgres quando um repositório de métricas é configurado.
+*   **Auditoria Assíncrona de Custos:** Calcula custo estimado, economia estimada, tokens e latência, com persistência assíncrona em Postgres/Neon quando `DATABASE_URL` está configurado.
 
 ---
 
@@ -29,10 +29,11 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 
 1. **Cliente** envia a requisição para o endpoint `POST /v1/chat/completions`.
 2. O Gateway valida a API key interna.
-3. Quando um `CacheStore` está configurado, o Gateway gera uma chave canônica e consulta o cache.
+3. Quando `REDIS_URL` está configurado, o Gateway gera uma chave canônica e consulta o Redis.
 4. Em *Cache Hit*, a resposta cacheada é devolvida sem acionar o provedor.
-5. Em *Cache Miss*, o Gateway encaminha o payload ao `ProviderClient` configurado.
-6. Quando um `MetricsRepository` está configurado, uma background task registra métricas financeiras e operacionais.
+5. Em *Cache Miss*, o Gateway encaminha o payload para a OpenAI quando `OPENAI_API_KEY` está configurada.
+6. A chamada ao provedor é envolvida por `RetryingProviderClient`, com retry para HTTP 408, 429 e 5xx.
+7. Quando `DATABASE_URL` está configurado, uma background task registra métricas financeiras e operacionais em Postgres/Neon.
 
 ---
 
@@ -42,31 +43,31 @@ O fluxo de dados foi projetado para respeitar os limites de memória da camada g
 
 * Rota `POST /v1/chat/completions` compatível com o formato de Chat Completions.
 * Autenticação via `Authorization: Bearer <gateway_api_key>`.
-* Geração de `X-Request-Id`, `X-Cache-Status`, `X-Provider`, `X-Retry-Count` e `X-Gateway-Latency-Ms`.
+* Provider real para OpenAI (`OpenAIProviderClient`) usando `OPENAI_API_KEY`.
+* Bootstrap por configuração para montar OpenAI, Redis e Postgres/Neon automaticamente.
+* Retry com exponential backoff e jitter para HTTP 408, 429 e 5xx.
+* Header `X-Retry-Count` com a contagem real de retries executados.
+* Geração de `X-Request-Id`, `X-Cache-Status`, `X-Provider` e `X-Gateway-Latency-Ms`.
 * Cache exato baseado em payload canônico.
-* Adaptador Redis (`RedisCacheStore`).
-* Smoke test opcional com Redis real quando `REDIS_URL` está configurado.
+* Adaptador Redis (`RedisCacheStore`) com TTL e prefixo opcional.
 * Política de cacheabilidade para evitar cache de streaming, bypass e erros.
-* Política de retry com exponential backoff e jitter.
 * Entidade de métrica FinOps com custo estimado e economia estimada.
 * Repositório Postgres assíncrono para métricas.
-* Smoke test opcional com Postgres/Neon real quando `DATABASE_URL` está configurado.
 * Migração inicial da tabela `tb_finops_metrics`.
 * Smoke test local com provedor fake e cache em memória.
+* Smoke test opcional com Redis real quando `REDIS_URL` está configurado.
+* Smoke test opcional com Postgres/Neon real quando `DATABASE_URL` está configurado.
+* Benchmark opcional de cache hit com Redis real.
 * Dockerfile e documentação para execução em container.
 
-### O que falta para o gateway ficar alinhado ao post do Medium
+### Pós-MVP
 
-* Implementar `OpenAIProviderClient` real usando `OPENAI_API_KEY`.
-* Conectar o provider real no bootstrap padrão da aplicação.
-* Envolver o provider real com `RetryingProviderClient`.
-* Instanciar `RedisCacheStore.from_url(settings.redis_url)` automaticamente fora de `development` ou quando `REDIS_URL` estiver configurado.
-* Instanciar `PostgresMetricsRepository.from_database_url(settings.database_url)` automaticamente fora de `development` ou quando `DATABASE_URL` estiver configurado.
-* Propagar o número real de retries para o header `X-Retry-Count`.
-* Criar benchmark simples de cache hit com Redis real antes de afirmar latência abaixo de 50ms.
-* Documentar claramente que Anthropic, Gemini, cache semântico, dashboard e fallback entre provedores são itens pós-MVP.
-
-Esses itens foram quebrados em tarefas incrementais no arquivo [`docs/tarefas-codex.md`](docs/tarefas-codex.md), a partir da Tarefa 18.
+* Suporte a Anthropic e Gemini via novos adapters.
+* Cache semântico com embeddings.
+* Dashboard de métricas FinOps.
+* Rate limiting por chave de cliente.
+* Multi-tenant.
+* Fallback automático entre provedores.
 
 ---
 
@@ -119,6 +120,22 @@ necessário, executa uma chamada com provedor fake local e consulta
 `tb_finops_metrics` pelo `request_id` de teste. Se `DATABASE_URL` não estiver
 definido, o teste é pulado automaticamente. A limpeza remove somente a linha com
 o `request_id` usado pelo smoke test.
+
+Benchmark opcional de cache hit com Redis real:
+
+```bash
+BENCHMARK_ENVIRONMENT=local \
+BENCHMARK_REQUESTS=100 \
+REDIS_URL=redis://localhost:6379/0 \
+make benchmark-redis
+```
+
+O benchmark usa provedor fake local, aquece o cache antes da medição e mede
+somente chamadas com `X-Cache-Status: HIT`. A saída reporta `mean_ms`, `p50_ms`,
+`p95_ms` e `p99_ms`, além do ambiente informado em `BENCHMARK_ENVIRONMENT`.
+Use valores publicados apenas quando vierem de uma execução real nesse ambiente
+específico, por exemplo `local`, `azure-container-apps + redis-free-tier` ou
+outro rótulo que descreva onde o teste rodou.
 
 ### Alternativa com container
 
@@ -188,8 +205,6 @@ Variáveis opcionais com default:
 
 ### Configuração para Integrações Reais
 
-> Status: esta é a configuração alvo das Tarefas 18 a 24. O código atual já possui as abstrações e adaptadores de Redis/Postgres, mas ainda precisa do bootstrap final para conectar automaticamente OpenAI, Redis e Postgres quando essas variáveis estiverem presentes.
-
 Crie um arquivo local baseado em `.env.example` ou configure as variáveis diretamente no ambiente de deploy.
 
 #### Gateway
@@ -217,7 +232,7 @@ PROVIDER_TIMEOUT_SECONDS=30
 MAX_RETRY_ATTEMPTS=3
 ```
 
-Quando a Tarefa 18 estiver implementada, o gateway deverá encaminhar chamadas `POST /v1/chat/completions` para a OpenAI usando essa credencial do ambiente. O cliente final não deve enviar a chave da OpenAI; ele envia apenas a chave interna do gateway.
+Com `OPENAI_API_KEY` configurada, o gateway encaminha chamadas `POST /v1/chat/completions` para a OpenAI usando essa credencial do ambiente. O cliente final não deve enviar a chave da OpenAI; ele envia apenas a chave interna do gateway.
 
 Exemplo de chamada ao gateway:
 
@@ -249,7 +264,7 @@ Em provedores com TLS, como alguns planos gerenciados, a URL pode seguir o forma
 REDIS_URL=rediss://default:<PASSWORD>@<HOST>:<PORT>
 ```
 
-Quando a Tarefa 19 estiver implementada, o bootstrap deverá criar `RedisCacheStore.from_url(settings.redis_url)` automaticamente quando `REDIS_URL` estiver configurado.
+Com `REDIS_URL` configurado, o bootstrap cria `RedisCacheStore.from_url(settings.redis_url)` automaticamente. Em `development`, se `REDIS_URL` não for alterado do default local, o cache real não é ativado para permitir execução sem infraestrutura externa.
 
 #### Postgres ou Neon
 
@@ -265,7 +280,7 @@ Antes de gravar métricas, aplique a migração:
 psql "$DATABASE_URL" -f migrations/001_create_finops_metrics.sql
 ```
 
-Quando a Tarefa 19 estiver implementada, o bootstrap deverá criar `PostgresMetricsRepository.from_database_url(settings.database_url)` automaticamente quando `DATABASE_URL` estiver configurado.
+Com `DATABASE_URL` configurado, o bootstrap cria `PostgresMetricsRepository.from_database_url(settings.database_url)` automaticamente. O pool é inicializado de forma lazy na primeira gravação, evitando conexão no startup.
 
 #### Exemplo de ambiente completo
 
@@ -307,7 +322,7 @@ docker run --rm -p 8000:8000 \
 
 #### Verificação esperada
 
-Com as Tarefas 18 a 24 implementadas, a verificação ponta a ponta deve cobrir:
+A verificação ponta a ponta deve cobrir:
 
 * primeira chamada autenticada retorna `X-Cache-Status: MISS`;
 * segunda chamada idêntica retorna `X-Cache-Status: HIT`;

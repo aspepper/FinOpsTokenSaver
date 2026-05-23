@@ -1,12 +1,15 @@
 PYTHON ?= python
 
-.PHONY: format lint smoke smoke-postgres smoke-redis test
+.PHONY: benchmark-redis format lint smoke smoke-postgres smoke-redis test
 
 format:
 	$(PYTHON) -m ruff format src tests scripts
 
 lint:
 	$(PYTHON) -m ruff check src tests scripts
+
+benchmark-redis:
+	$(PYTHON) scripts/benchmark_redis_cache_hit.py
 
 smoke:
 	$(PYTHON) scripts/smoke_main_flow.py
